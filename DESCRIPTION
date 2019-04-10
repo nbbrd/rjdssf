@@ -1,0 +1,29 @@
+Package: rjdssf
+Type: Package
+Title: Some name for this state space package 
+Version: 0.1.1
+Authors@R: as.person(c(
+    "Jean Palate <jean.palate@nbb.be> [aut,cre]"
+      ))
+Description: This package provides something.
+Depends:
+    R (>= 3.1.1)
+Imports:
+    rJava (>= 0.9-8),
+   methods
+License: EUPL
+LazyData: TRUE
+Collate:
+	'onLoad.R'
+  	'jd3_init.R'  
+        'jd3_ts.R'
+	'jd3_utility.R'
+	'jd3_rslts.R'	
+        'jd3_procresults.R'
+  	'jd3_ssf.R'
+Suggests:
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
+RoxygenNote: 6.1.1
+Encoding: UTF-8
