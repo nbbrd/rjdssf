@@ -394,22 +394,15 @@ jd3_ssf_sarima<-function(name, period, orders, seasonal, parameters=NULL, fixedp
   new (Class = "JD3_SsfItem", internal = jrslt)
 }
 
-
-
-jd3_ssf_reg<-function(ssf, x, var=0, mvar=NULL){
+jd3_ssf_reg<-function(name, x, var=NULL, fixed=F){
   
-  if (is.null(mvar)){
-    if (var == 0)
-      jssf<-.jcall("rssf/RegressionModels", "Ldemetra/ssf/univariate/ISsf;", "fixed", ssf@internal, matrix_r2jd(x))
-    else
-      jssf<-.jcall("rssf/RegressionModels", "Ldemetra/ssf/univariate/ISsf;", "timeVarying", ssf@internal, matrix_r2jd(x), var)
+  if (is.null(var)){
+    jrslt<-.jcall("demetra/msts/AtomicModels", "Ldemetra/msts/ModelItem;", "regression", name, matrix_r2jd(x))
   }else{
-    jssf<-.jcall("rssf/RegressionModels", "Ldemetra/ssf/univariate/ISsf;", "timeVarying", ssf@internal, matrix_r2jd(x), matrix_r2jd(mvar))
+    jrslt<-.jcall("demetra/msts/AtomicModels", "Ldemetra/msts/ModelItem;", "timeVaryingRegression", name, matrix_r2jd(x), as.numeric(var), fixed)
   }
-  return (new (Class = "JD3_Ssf", internal = jssf))
+  return (new (Class = "JD3_SsfItem", internal = jrslt))
 }
-
-
 
 jd3_ssf_td<-function(name, period, start, length, groups=c(1,2,3,4,5,6,0), contrast=TRUE, variance=1, fixed=FALSE){
   jdomain<-tsdomain_r2jd(period, startYear = start[1], startPeriod = start[2], length = length)
@@ -417,19 +410,13 @@ jd3_ssf_td<-function(name, period, start, length, groups=c(1,2,3,4,5,6,0), contr
   new (Class = "JD3_SsfItem", internal = jrslt)
 }
 
-
-
 jd3_smoothedstates<-function(rslt){
   return(result(rslt, "ssf.smoothing.states"))
 }
 
-
-
 jd3_filteredstates<-function(rslt){
   return(result(rslt, "ssf.filtered.states"))
 }
-
-
 
 jd3_filteringstates<-function(rslt){
   return(result(rslt, "ssf.filtering.states"))
