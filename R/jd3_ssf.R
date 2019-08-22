@@ -3,21 +3,42 @@ setClass(
   contains = "JD3_ProcResults"
 )
 
-if (! isGeneric("compute")){
-  setGeneric(name="compute", def = function( object, ...){standardGeneric("compute")})
+if (! isGeneric("ssf.compute")){
+  setGeneric(name="ssf.compute", def = function( object, ...){standardGeneric("ssf.compute")})
 }
 
-if (! isGeneric("estimate")){
-  setGeneric(name="estimate", def = function( object,...){standardGeneric("estimate")})
+if (! isGeneric("ssf.estimate")){
+  setGeneric(name="ssf.estimate", def = function( object,...){standardGeneric("ssf.estimate")})
 }
 
-if (! isGeneric("add")){
-  setGeneric(name="add"	, def = function( object, item, ...){standardGeneric("add")})
+if (! isGeneric("ssf.add")){
+  setGeneric(name="ssf.add"	, def = function( object, item, ...){standardGeneric("ssf.add")})
+}
+
+if (! isGeneric("ssf.dim")){
+  setGeneric(name="ssf.dim", def = function( object,...){standardGeneric("ssf.dim")})
+}
+
+if (! isGeneric("ssf.loading")){
+  setGeneric(name="ssf.loading", def = function( object,...){standardGeneric("ssf.loading")})
+}
+
+if (! isGeneric("ssf.signal")){
+  setGeneric(name="ssf.signal", def = function( object,...){standardGeneric("ssf.signal")})
+}
+
+if (! isGeneric("ssf.states")){
+  setGeneric(name="ssf.states", def = function( object,...){standardGeneric("ssf.states")})
 }
 
 setClass(
   Class="JD3_SsfModel",
   contains = "JD3_Object"
+)
+
+setClass(
+  Class="JD3_SsfModelEstimation",
+  contains = "JD3_ProcResults"
 )
 
 setClass(
@@ -56,7 +77,7 @@ setClass(
   contains = "JD3_Object"
 )
 
-setMethod("add", signature = c(object="JD3_SsfModel", item = "JD3_SsfStateBlock"), function(object, item){
+setMethod("ssf.add", signature = c(object="JD3_SsfModel", item = "JD3_SsfStateBlock"), function(object, item){
   if ( is.jnull(object@internal) || is.jnull(item@internal) ){
     return
   }else{
@@ -64,7 +85,53 @@ setMethod("add", signature = c(object="JD3_SsfModel", item = "JD3_SsfStateBlock"
   }
 })
 
-setMethod("add", signature = c(object="JD3_SsfModel", item = "JD3_SsfEquation"), function(object, item){
+setMethod("ssf.dim", signature = c(object="JD3_SsfStateBlock"), function(object){
+  if ( is.jnull(object@internal) ){
+    return
+  }else{
+    .jcall(object@internal, "I", "stateDim")
+  }
+})
+
+setMethod("ssf.signal", signature = c(object="JD3_SsfModelEstimation"), function(object, obs=1, pos=NULL, loading=NULL, stdev=F){
+  if ( is.jnull(object@internal)){
+    return
+  }else{
+    if (! is.null(loading)){
+      if (stdev){
+        return (.jcall(object@internal, "[D", "stdevSignal", matrix_r2jd(loading)))
+      }else{
+        return (.jcall(object@internal, "[D", "signal", matrix_r2jd(loading)))
+      }
+    }else{
+      if (is.null(pos))
+        jpos<-.jnull("[I")
+      else
+        jpos<-.jarray(as.integer(pos-1))
+      if (stdev){
+        return (.jcall(object@internal, "[D", "stdevSignal", as.integer(obs-1), jpos))
+      }else{
+        return (.jcall(object@internal, "[D", "signal", as.integer(obs-1), jpos))
+      }
+    }
+  }
+})
+
+setMethod("ssf.loading", signature = c(object="JD3_SsfModelEstimation"), function(object, obs=1){
+  if ( is.jnull(object@internal)){
+    return
+  }else{
+      jm<-.jcall(object@internal, "Ldemetra/maths/matrices/Matrix;", "loading", as.integer(obs-1))
+      return (matrix_jd2r(jm))
+  }
+})
+
+# for compatibiity with existing code
+add<-function(object, item){
+  ssf.add(object, item)
+}
+
+setMethod("ssf.add", signature = c(object="JD3_SsfModel", item = "JD3_SsfEquation"), function(object, item){
   if ( is.jnull(object@internal) || is.jnull(item@internal) ){
     return
   }else{
@@ -72,10 +139,9 @@ setMethod("add", signature = c(object="JD3_SsfModel", item = "JD3_SsfEquation"),
   }
 })
 
-setMethod("estimate", "JD3_SsfModel", function(object, data, precision=1e-15, likelihood=c("Diffuse", "Marginal", "Augmented"), 
-                                               optimizer=c("LevenbergMarquardt", "MinPack", "BFGS", "LBFGS"), 
-                                               concentrated=TRUE, initialParameters=NULL){
-  likelihood=match.arg(likelihood)
+setMethod("ssf.estimate", "JD3_SsfModel", function(object, data, marginal=F, concentrated=T,
+              initialization=c("Diffuse", "SqrDiffuse", "Augmented"), optimizer=c("LevenbergMarquardt", "MinPack", "BFGS", "LBFGS"), precision=1e-15, initialParameters=NULL){
+  initialization=match.arg(initialization)
   optimizer=match.arg(optimizer)
   if ( is.jnull(object@internal) ){
     return(NULL)
@@ -84,14 +150,17 @@ setMethod("estimate", "JD3_SsfModel", function(object, data, precision=1e-15, li
     if (! is.null(initialParameters))
       jparams<-.jarray(initialParameters)
     jdata<-matrix_r2jd(data)
-    jrslt<-.jcall("rssf/CompositeModels", "Lrssf/CompositeModels$Results;", "estimate",object@internal, jdata, precision, likelihood, optimizer, concentrated, jparams)
-    return( new(Class= "JD3_ProcResults", internal=jrslt))
+    jrslt<-.jcall("rssf/CompositeModels", "Lrssf/CompositeModels$Results;", "estimate",object@internal, jdata, marginal, concentrated, initialization, optimizer, precision, jparams)
+    return( new(Class= "JD3_SsfModelEstimation", internal=jrslt))
   }
 })
 
+estimate<-function(object, data, marginal=F, concentrated=T,
+                   initialization=c("Diffuse", "SqrDiffuse", "Augmented"), optimizer=c("LevenbergMarquardt", "MinPack", "BFGS", "LBFGS"), precision=1e-15, initialParameters=NULL){
+  ssf.estimate(object, data, marginal, concentrated, initialization, optimizer, precision, initialParameters)
+}
 
-
-setMethod("compute", signature = c(object="JD3_SsfModel"), function(object, data, parameters, marginal=FALSE, concentrated=TRUE){
+setMethod("ssf.compute", signature = c(object="JD3_SsfModel"), function(object, data, parameters, marginal=FALSE, concentrated=TRUE){
   
   
   if ( is.jnull(object@internal) ){
@@ -107,13 +176,8 @@ setMethod("compute", signature = c(object="JD3_SsfModel"), function(object, data
   }
 })
 
+setMethod("ssf.add", signature = c(object="JD3_SsfEquation", item="character"), function(object, item, coeff=1, fixed=TRUE, loading=NULL){
 
-
-
-
-setMethod("add", signature = c(object="JD3_SsfEquation", item="character"), function(object, item, coeff=1, fixed=TRUE, loading=NULL){
-  
-  
   if (is.null(loading))
     .jcall(object@internal, "V", "add", item, coeff, as.logical(fixed), .jnull("jdplus/ssf/ISsfLoading"))
   else
@@ -122,9 +186,6 @@ setMethod("add", signature = c(object="JD3_SsfEquation", item="character"), func
     .jcall(object@internal, "V", "add", item, coeff, as.logical(fixed), loading@internal)
   
 })
-
-
-
 
 
 jd3_ssf_ar<-function(name, ar, fixedar=FALSE, variance=.01, fixedvariance=FALSE, nlags=0, zeroinit=FALSE){
@@ -371,14 +432,30 @@ jd3_ssf_sarima<-function(name, period, orders, seasonal, parameters=NULL, fixedp
   new (Class = "JD3_SsfStateBlock", internal = jrslt)
 }
 
+jd3_ssf_cumul<-function(name, core, period, start=0){
+  jrslt<-.jcall("jdplus/msts/DerivedModels", "Ljdplus/msts/StateItem;", "cumulator", name, core@internal
+                , as.integer(period), as.integer(start))
+  new (Class = "JD3_SsfStateBlock", internal = jrslt)
+}
 
+jd3_ssf_aggregation<-function(name, components){
+  if(!is.list(components) || length(components)<2 ) {
+    stop("incorrect argument, components should be a list of at least 2 items")}
+  plist<-list()
+  for (i in 1:length(components)){
+    plist[[i]]<-components[[i]]@internal
+  }
+  jcmps<-.jarray(plist, contents.class = "jdplus/msts/StateItem")
+  jrslt<-.jcall("jdplus/msts/DerivedModels", "Ljdplus/msts/StateItem;", "aggregation", name, jcmps)
+  new (Class = "JD3_SsfStateBlock", internal = jrslt)
+}
 
 jd3_ssf_reg<-function(name, x, var=NULL, fixed=F){
   
   if (is.null(var)){
-    jrslt<-.jcall("demetra/msts/AtomicModels", "Ldemetra/msts/ModelItem;", "regression", name, matrix_r2jd(x))
+    jrslt<-.jcall("jdplus/msts/AtomicModels", "Ljdplus/msts/StateItem;", "regression", name, matrix_r2jd(x))
   }else{
-    jrslt<-.jcall("demetra/msts/AtomicModels", "Ldemetra/msts/ModelItem;", "timeVaryingRegression", name, matrix_r2jd(x), as.numeric(var), fixed)
+    jrslt<-.jcall("jdplus/msts/AtomicModels", "Ljdplus/msts/StateItem;", "timeVaryingRegression", name, matrix_r2jd(x), as.numeric(var), fixed)
   }
   return (new (Class = "JD3_SsfStateBlock", internal = jrslt))
 }

@@ -36,7 +36,7 @@ matrix_jd2r<-function(s){
 
 matrix_r2jd<-function(s){
   if (is.null(s))
-    return (.jnull("demetra/maths/MatrixType"))
+    return (.jnull("demetra/maths/matrices/Matrix"))
   if (!is.matrix(s)){
     s<-matrix(s, nrow=length(s), ncol=1)
   }
