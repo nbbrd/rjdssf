@@ -3,6 +3,7 @@ import("rJava")
 
 importFrom("methods","as")
 importFrom("stats", "frequency", "ts")
+export("jd3_calendar")
 export("jd3_ssf_ar")
 export("jd3_ssf_ar2")
 export("jd3_ssf_cycle")
