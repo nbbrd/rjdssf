@@ -1,3 +1,7 @@
+#' @include ts.R procresults.R 
+#' @import rJava
+NULL
+
 #' Title
 #'
 #' @param group 
@@ -11,7 +15,7 @@
 #' @export
 #'
 #' @examples
-jd3_calendar<-function(group, contrasts=TRUE, period, startYear, startPeriod=1, length=0){
+calendar<-function(group, contrasts=TRUE, period, startYear, startPeriod=1, length=0){
  if (length == 0)
    length = period*20
  jdom<-tsdomain_r2jd(period, startYear, startPeriod, length)
