@@ -1,1 +1,0 @@
-jdr_root_env <- new.env(parent = emptyenv())
